@@ -1,0 +1,2 @@
+# No variables required - SSH access is via EC2 Instance Connect Endpoint
+# Connect with: aws ec2-instance-connect ssh --instance-id <id> --profile tennis

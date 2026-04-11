@@ -11,6 +11,7 @@ resource "aws_vpc" "main_tennis" {
 resource "aws_subnet" "tennis_public" {
   vpc_id     = aws_vpc.main_tennis.id
   cidr_block = "10.0.1.0/24"
+  availability_zone = "us-east-1a"
 
   tags = {
     Name = "k8s-public"
@@ -19,8 +20,9 @@ resource "aws_subnet" "tennis_public" {
 
 # Private Subnet for k8s cluster
 resource "aws_subnet" "tennis_private" {
-  vpc_id     = aws_vpc.main_tennis.id
-  cidr_block = "10.0.2.0/24"
+  vpc_id            = aws_vpc.main_tennis.id
+  cidr_block        = "10.0.2.0/24"
+  availability_zone = "us-east-1a"
 
   tags = {
     Name = "k8s-private"
