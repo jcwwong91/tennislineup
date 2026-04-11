@@ -1,0 +1,2 @@
+my_ip      = "YOUR_IP_HERE"
+public_key = "ssh-ed25519 AAAA... your-key-comment"
