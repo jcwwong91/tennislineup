@@ -3,7 +3,7 @@ resource "aws_security_group" "eic_endpoint" {
   description = "Security group for EC2 Instance Connect Endpoint"
   vpc_id      = aws_vpc.main_tennis.id
 
-  # Allow the endpoint to reach port 22 on instances within the VPC
+  # Allow the endpoint to reach port 22 on any instance within the VPC
   egress {
     from_port   = 22
     to_port     = 22

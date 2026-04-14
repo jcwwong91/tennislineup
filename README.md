@@ -105,6 +105,61 @@ make docker-clean
 | `make docker-stop`  | Stop the running container           |
 | `make docker-clean` | Remove the Docker image              |
 
+## Infrastructure (AWS / k3s)
+
+The app runs on a single-node k3s cluster in a private AWS subnet. Access is via EC2 Instance Connect (EIC) — no bastion, no public SSH exposure.
+
+### SSH into the k3s instance
+
+```bash
+aws ec2-instance-connect ssh \
+  --instance-id <instance-id> \
+  --connection-type eice \
+  --os-user ubuntu \
+  --profile tennis \
+  --region us-east-1
+```
+
+### kubectl via SSH tunnel
+
+Since the k3s API server is in a private subnet, kubectl traffic is forwarded over an SSH tunnel through EIC.
+
+**Step 1 — open the tunnel** (leave this running in a dedicated terminal):
+
+```bash
+ssh -i ~/.ssh/tennislineup \
+  -L 6443:localhost:6443 \
+  -o "ProxyCommand=aws ec2-instance-connect open-tunnel --instance-id <instance-id> --remote-port 22 --profile tennis --region us-east-1" \
+  ubuntu@<instance-id>
+```
+
+**Step 2 — copy the kubeconfig** (first time only):
+
+```bash
+scp -i ~/.ssh/tennislineup \
+  -o "ProxyCommand=aws ec2-instance-connect open-tunnel --instance-id <instance-id> --remote-port 22 --profile tennis --region us-east-1" \
+  ubuntu@<instance-id>:~/.kube/config \
+  ~/.kube/config
+```
+
+**Step 3 — use kubectl normally** in any other terminal:
+
+```bash
+kubectl get nodes
+```
+
+> Note: kubectl is slow over EIC as it routes through AWS's management plane. This is expected.
+
+### Provisioning
+
+```bash
+# Shared networking, NAT, EIC endpoint
+cd terraform/shared && terraform apply
+
+# k3s instance
+cd terraform/environments/k3s && terraform apply
+```
+
 ## License
 
 MIT

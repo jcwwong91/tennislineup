@@ -89,6 +89,31 @@ resource "aws_instance" "k3s" {
   vpc_security_group_ids = [aws_security_group.k3s.id]
   key_name               = var.key_name
 
+  user_data = <<-EOF
+    #!/bin/bash
+    # Pre-allow SSH before k3s modifies iptables
+    iptables -I INPUT 1 -p tcp --dport 22 -j ACCEPT
+
+    # Install k3s using bundled iptables to avoid conflicts with Ubuntu 24.04's nftables
+    curl -sfL https://get.k3s.io | sh -s - --prefer-bundled-bin
+
+    # Wait for k3s to fully start and finish writing its iptables rules
+    until kubectl get nodes 2>/dev/null | grep -q "Ready"; do sleep 5; done
+
+    # Re-insert SSH rule at the top after k3s has rewritten its chains
+    iptables -I INPUT 1 -p tcp --dport 22 -j ACCEPT
+
+    # Persist so the rule survives reboots
+    apt-get install -y iptables-persistent
+    netfilter-persistent save
+
+    # Allow ubuntu user to use kubectl without sudo
+    mkdir -p /home/ubuntu/.kube
+    cp /etc/rancher/k3s/k3s.yaml /home/ubuntu/.kube/config
+    chown -R ubuntu:ubuntu /home/ubuntu/.kube
+    chmod 600 /home/ubuntu/.kube/config
+  EOF
+
   tags = {
     Name = "k3s"
   }
